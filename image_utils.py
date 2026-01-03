@@ -1,10 +1,7 @@
 from PIL import Image
 import numpy as np
 from scipy.signal import convolve2d
-
 import cv2
-import numpy as np
-from scipy.signal import convolve2d
 
 def load_image(file_path):
     """
