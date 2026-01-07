@@ -38,64 +38,50 @@ def load_image(image_path):
 
 # 1. הנתיב שלך (זכרי להעלות את הקובץ לסרגל הצד אם את בקולאב)
 my_path = 'kyoto.jpeg' 
+import numpy as np
+from PIL import Image
+from scipy import signal
 
-import numpy as np                 # לחישובים מתמטיים ומערכים
-from PIL import Image              # לטעינה ופתיחה של תמונות
-from scipy import signal           # בשביל פונקציית הקונבולוציה (convolve2d)
-import matplotlib.pyplot as plt    # (אופציונלי) כדי להציג את התמונות על המסך
+def load_image(image_path):
+    """טעינת תמונה והמרתה למערך נומפי"""
+    img = Image.open(image_path)
+    return np.array(img)
 
 def edge_detection(image_array):
-    # א. המרה לגרייסקייל על ידי ממוצע של שלושת ערוצי הצבע
-    # אנחנו מחשבים ממוצע על ציר 2 (ערוצי הצבע)
-    grayscale = np.mean(image_array, axis=2)
+    """זיהוי קצוות הכולל המרה לגרייסקייל וקונבולוציה"""
     
-    # ב. יצירת קרנל (פילטר) לזיהוי שינויים אנכיים - kernelY
+    # --- זה השינוי הקריטי שמונע את ה-AxisError ---
+    if len(image_array.shape) == 3:
+        # אם התמונה צבעונית (3 ערוצים), נחשב ממוצע
+        grayscale = np.mean(image_array, axis=2)
+    else:
+        # אם התמונה כבר בשחור-לבן (ערוץ 1), נשתמש בה כמו שהיא
+        grayscale = image_array
+    # ----------------------------------------------
+
+    # הגדרת הפילטרים (Kernels)
     kernelY = np.array([
         [ 1,  2,  1],
         [ 0,  0,  0],
         [-1, -2, -1]
     ])
     
-    # ג. יצירת קרנל (פילטר) לזיהוי שינויים אופקיים - kernelX
     kernelX = np.array([
         [-1, 0, 1],
         [-2, 0, 2],
         [-1, 0, 1]
     ])
     
-    # ד. הרצת הקונבולוציה (Apply filters)
-    # mode='same' מבטיח שהתוצאה תהיה באותו גודל של התמונה המקורית
-    # boundary='fill', fillvalue=0 מבצע zero padding
+    # ביצוע הקונבולוציה (לפי ההוראות: zero padding וגודל זהה למקור)
     edgeX = signal.convolve2d(grayscale, kernelX, mode='same', boundary='fill', fillvalue=0)
     edgeY = signal.convolve2d(grayscale, kernelY, mode='same', boundary='fill', fillvalue=0)
     
-    # ה. חישוב עוצמת הקצוות (Magnitude) לפי הנוסחה
+    # חישוב עוצמת הקצוות (Magnitude)
     edgeMAG = np.sqrt(edgeX**2 + edgeY**2)
     
-    # ו. החזרת המערך המייצג את הקצוות
     return edgeMAG
-    import matplotlib.pyplot as plt
 
-# 1. הרצת פונקציית זיהוי הקצוות על המערך שקיבלנו מהשלב הקודם
-edge_result = edge_detection(image_result)
+    
+    
+   
 
-# 2. אימות נתונים
-print("Edge detection finished!")
-print(f"Result shape: {edge_result.shape}") # צריך להיות זהה לגובה ולרוחב המקורי
-
-# 3. תצוגה ויזואלית של התוצאה
-plt.figure(figsize=(10, 5))
-
-# הצגת המקור
-plt.subplot(1, 2, 1)
-plt.title("Original Image")
-plt.imshow(image_result)
-plt.axis('off')
-
-# הצגת הקצוות (משתמשים במפת צבעים אפורה)
-plt.subplot(1, 2, 2)
-plt.title("Edge Detection (Sobel)")
-plt.imshow(edge_result, cmap='gray')
-plt.axis('off')
-
-plt.show()
