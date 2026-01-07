@@ -1,30 +1,49 @@
 import numpy as np
-from image_utils import load_image, edge_detection
-from skimage.filters import median
-from skimage.morphology import disk
+import matplotlib.pyplot as plt
 from PIL import Image
+from scipy import signal
+from skimage.filters import median
+from skimage.morphology import ball # נשארים עם ball לפי ההוראות
 
-def main():
-    input_path = 'kyoto.jpeg' # ודאי שהקובץ ב-GitHub נקרא בדיוק ככה
-    try:
-        original_img = load_image(input_path)
-        print("Image loaded successfully.")
-        
-        gray_img = np.mean(original_img, axis=2).astype(np.uint8)
-        clean_image = median(gray_img, disk(3))
-        
-        clean_3channel = np.stack([clean_image]*3, axis=-1)
-        edge_mag = edge_detection(clean_3channel)
-        
-        threshold = 50 
-        edge_binary = (edge_mag > threshold).astype(np.uint8) * 255
-        
-        output_image = Image.fromarray(edge_binary)
-        output_image.save('edge_detected_image.png')
-        print("Edge detection completed. Result saved as edge_detected_image.png")
+# 1. הגדרת פונקציות
+def load_image(p): 
+    return np.array(Image.open(p))
 
-    except Exception as e:
-        print(f"An error occurred: {e}")
+def edge_detection(img_arr):
+    if len(img_arr.shape) == 3:
+        gray = np.mean(img_arr, axis=2)
+    else:
+        gray = img_arr
+    ky = np.array([[1, 2, 1], [0, 0, 0], [-1, -2, -1]])
+    kx = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
+    ex = signal.convolve2d(gray, kx, mode='same', boundary='fill', fillvalue=0)
+    ey = signal.convolve2d(gray, ky, mode='same', boundary='fill', fillvalue=0)
+    return np.sqrt(ex**2 + ey**2)
 
-if __name__ == "__main__":
-    main()
+# 2. הרצה
+filename = 'kyoto.jpeg'
+img = load_image(filename)
+
+# המרה לגרייסקייל
+gray = np.mean(img, axis=2).astype(np.uint8)
+
+# התיקון כאן: 
+# השגיאה קרתה כי ball(3) הוא תלת-מימדי. 
+# אנחנו לוקחים רק שכבה אחת ממנו [1] כדי שיהיה דו-מימדי ויתאים לתמונה.
+clean = median(gray, ball(3)[1]) 
+
+mag = edge_detection(clean)
+
+# יצירת התמונה הבינארית
+threshold = 30
+binary = (mag > threshold).astype(np.uint8) * 255
+
+# 3. הצגת התוצאה
+plt.figure(figsize=(10, 5))
+plt.imshow(binary, cmap='gray')
+plt.axis('off')
+plt.show()
+
+# 4. שמירה
+Image.fromarray(binary).save('my_edges.png')
+print("✅ הסתיים בהצלחה! התמונה נוצרה.")
